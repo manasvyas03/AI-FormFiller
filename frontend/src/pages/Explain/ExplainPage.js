@@ -100,7 +100,31 @@ function ExplainPage() {
     
     try {
       setIsSpeaking(true);
-      const fullExplanation = `${explanation.purpose}. ${explanation.summary}`;
+      // Build full explanation from all available fields
+      let fullExplanation = '';
+      
+      if (explanation.form_type) {
+        fullExplanation += `Form Type: ${explanation.form_type}. `;
+      }
+      if (explanation.form_category) {
+        fullExplanation += `Category: ${explanation.form_category}. `;
+      }
+      if (explanation.purpose) {
+        fullExplanation += `Purpose: ${explanation.purpose}. `;
+      }
+      if (explanation.issuing_authority) {
+        fullExplanation += `Issuing Authority: ${explanation.issuing_authority}. `;
+      }
+      if (explanation.summary) {
+        fullExplanation += `Summary: ${explanation.summary}. `;
+      }
+      if (explanation.required_documents && explanation.required_documents.length > 0) {
+        fullExplanation += `Required Documents: ${explanation.required_documents.join(', ')}. `;
+      }
+      if (explanation.important_notes && explanation.important_notes.length > 0) {
+        fullExplanation += `Important Notes: ${explanation.important_notes.join(', ')}. `;
+      }
+      
       await speakText(fullExplanation, getSpeechLanguage());
     } catch (err) {
       console.log('Speech error:', err);

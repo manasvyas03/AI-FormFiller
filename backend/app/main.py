@@ -23,7 +23,6 @@ from .models import (
     SuggestFieldsResponse
 )
 from .ocr import extract_text, infer_fields_from_text, extract_text_with_boxes
-from .gemini import explain_form_with_vision, generate_questions_with_vision
 from .aws_services import (
     extract_text_with_textract, 
     analyze_form_with_bedrock, 
@@ -95,7 +94,7 @@ async def upload_form(file: UploadFile = File(...), language: str = "en", use_aw
 
 @app.post("/explain_form", response_model=ExplainFormResponse)
 async def explain_form_endpoint(req: ExplainFormRequest):
-    """Explain the form content in the user's language using Gemini Vision."""
+    """Explain the form content in the user's language using AWS Bedrock."""
     if req.form_id not in FORMS:
         raise HTTPException(status_code=404, detail="Form not found")
 
@@ -103,7 +102,7 @@ async def explain_form_endpoint(req: ExplainFormRequest):
     form_path = form_data.get("path", "")
     form_text = form_data.get("text", "")
     
-    # Try AWS Bedrock first (if configured)
+    # Try AWS Bedrock
     try:
         explanation = analyze_form_with_bedrock(form_path, req.language, form_text)
         if explanation and explanation.get("form_type"):
@@ -117,31 +116,8 @@ async def explain_form_endpoint(req: ExplainFormRequest):
     except Exception as e:
         print(f"AWS Bedrock error: {e}")
     
-    # Fall back to Gemini
+    # Fallback to text-based explanation
     try:
-        # Use Gemini Vision for better understanding
-        explanation = explain_form_with_vision(form_path, req.language, form_text)
-        
-        return ExplainFormResponse(
-            form_id=req.form_id,
-            form_type=explanation.get("form_type", "Form"),
-            purpose=explanation.get("purpose", ""),
-            sections=explanation.get("sections", []),
-            summary=explanation.get("summary", "")
-        )
-    except Exception as e:
-        print(f"Gemini error: {e}")
-        
-        return ExplainFormResponse(
-            form_id=req.form_id,
-            form_type=explanation.get("form_type", "Form"),
-            purpose=explanation.get("purpose", ""),
-            sections=explanation.get("sections", []),
-            summary=explanation.get("summary", "")
-        )
-    except Exception as e:
-        print(f"Error in explain_form: {e}")
-        # Fallback to text-based explanation
         form_text = form_data.get("text", "")
         explanation = explain_form(form_text, req.language)
         
@@ -152,6 +128,9 @@ async def explain_form_endpoint(req: ExplainFormRequest):
             sections=explanation.get("sections", []),
             summary=explanation.get("summary", "")
         )
+    except Exception as e:
+        print(f"Error in explain_form: {e}")
+        raise HTTPException(status_code=500, detail="Failed to explain form")
 
 
 @app.post("/suggest_fields", response_model=SuggestFieldsResponse)
@@ -202,25 +181,6 @@ async def generate_questions(req: GenerateQuestionsRequest):
             return GenerateQuestionsResponse(questions=questions)
     except Exception as e:
         print(f"AWS Bedrock questions error: {e}")
-    
-    # Try Gemini Vision for better questions
-    try:
-        questions_raw = generate_questions_with_vision(form_path, req.language, form_text)
-        if questions_raw:
-            questions = []
-            for item in questions_raw:
-                q_id = item.get("id") or str(uuid.uuid4())
-                q = Question(
-                    id=q_id,
-                    field_name=item.get("field_name", ""),
-                    question_text=item.get("question_text", "")
-                )
-                questions.append(q)
-
-            FORMS[req.form_id]["questions"] = [q.dict() for q in questions]
-            return GenerateQuestionsResponse(questions=questions)
-    except Exception as e:
-        print(f"Gemini questions error: {e}")
     
     # Fallback to text-based
     fields = req.fields if req.fields else form_data.get("fields", [])

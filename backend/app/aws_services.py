@@ -15,6 +15,8 @@ load_dotenv()
 
 # Get AWS region from environment
 AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
 
 # Language names mapping
 LANGUAGE_NAMES = {
@@ -26,12 +28,22 @@ LANGUAGE_NAMES = {
 
 def get_textract_client():
     """Get AWS Textract client."""
-    return boto3.client('textract', region_name=AWS_REGION)
+    return boto3.client(
+        'textract',
+        region_name=AWS_REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
 
 
 def get_bedrock_client():
     """Get AWS Bedrock runtime client."""
-    return boto3.client('bedrock-runtime', region_name=AWS_REGION)
+    return boto3.client(
+        'bedrock-runtime',
+        region_name=AWS_REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
 
 
 def extract_text_with_textract(image_path: str) -> Dict:
