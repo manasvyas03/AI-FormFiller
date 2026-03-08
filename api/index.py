@@ -1,15 +1,7 @@
-from http.server import BaseHTTPRequestHandler
-import json
+import sys
+import os
 
-class handler(BaseHTTPRequestHandler):
+# allow importing backend modules
+sys.path.append(os.path.join(os.path.dirname(__file__), "../backend"))
 
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type','application/json')
-        self.end_headers()
-
-        response = {
-            "message": "Backend working on Vercel!"
-        }
-
-        self.wfile.write(json.dumps(response).encode())
+from app.main import app
